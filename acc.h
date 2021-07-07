@@ -43,5 +43,5 @@ typedef struct {
 } StrArray;
 
 void array_push(StrArray *arr, char *s);
-char *render(char *fmt, ...) __attribute__((render(printf, 1,2)));
+char *render(char *fmt, ...) __attribute__((format(printf, 1,2)));
 

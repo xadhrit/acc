@@ -65,15 +65,7 @@ static void add_default_include_paths(char *argv0){
 }
 
 
-static void define(char *str){
-   char *eq = strchr(str, '=');
-   if (eq){
-     define_macro(strndup(str, eq - str), eq + 1);
-   }
-   else {
-     define_macro(str, "1");
-   }
-}
+
 
 static FileType parse_opt_x(char *s){
   if (!strcmp(s, "c")){
@@ -179,32 +171,13 @@ static void parse_args(int argc, char **argv) {
     }
 
     if (!strncmp(argv[i], "-I", 2)) {
-      strarray_push(&include_paths, argv[i] + 2);
+      array_push(&include_paths, argv[i] + 2);
       continue;
     }
 
-    if (!strcmp(argv[i], "-D")) {
-      define(argv[++i]);
-      continue;
-    }
-
-    if (!strncmp(argv[i], "-D", 2)) {
-      define(argv[i] + 2);
-      continue;
-    }
-
-    if (!strcmp(argv[i], "-U")) {
-      undef_macro(argv[++i]);
-      continue;
-    }
-
-    if (!strncmp(argv[i], "-U", 2)) {
-      undef_macro(argv[i] + 2);
-      continue;
-    }
 
     if (!strcmp(argv[i], "-include")) {
-      strarray_push(&opt_include, argv[++i]);
+      array_push(&opt_include, argv[++i]);
       continue;
     }
 
@@ -219,17 +192,17 @@ static void parse_args(int argc, char **argv) {
     }
 
     if (!strncmp(argv[i], "-l", 2) || !strncmp(argv[i], "-Wl,", 4)) {
-      strarray_push(&input_paths, argv[i]);
+      array_push(&input_paths, argv[i]);
       continue;
     }
 
     if (!strcmp(argv[i], "-Xlinker")) {
-      strarray_push(&ld_extra_args, argv[++i]);
+      array_push(&ld_extra_args, argv[++i]);
       continue;
     }
 
     if (!strcmp(argv[i], "-s")) {
-      strarray_push(&ld_extra_args, "-s");
+      array_push(&ld_extra_args, "-s");
       continue;
     }
 
@@ -292,25 +265,25 @@ static void parse_args(int argc, char **argv) {
     }
 
     if (!strcmp(argv[i], "-idirafter")) {
-      strarray_push(&idirafter, argv[i++]);
+      array_push(&idirafter, argv[i++]);
       continue;
     }
 
     if (!strcmp(argv[i], "-static")) {
       opt_static = true;
-      strarray_push(&ld_extra_args, "-static");
+      array_push(&ld_extra_args, "-static");
       continue;
     }
 
     if (!strcmp(argv[i], "-shared")) {
       opt_shared = true;
-      strarray_push(&ld_extra_args, "-shared");
+      array_push(&ld_extra_args, "-shared");
       continue;
     }
 
     if (!strcmp(argv[i], "-L")) {
-      strarray_push(&ld_extra_args, "-L");
-      strarray_push(&ld_extra_args, argv[++i]);
+      array_push(&ld_extra_args, "-L");
+      array_push(&ld_extra_args, argv[++i]);
       continue;
     }
 
@@ -320,10 +293,10 @@ static void parse_args(int argc, char **argv) {
       continue;
     }
 
-    if (!strcmp(argv[i], "-hashmap-test")) {
+    /*if (!strcmp(argv[i], "-hashmap-test")) {
       hashmap_test();
       exit(0);
-    }
+    }*/
 
     // These options are ignored for now.
     if (!strncmp(argv[i], "-O", 2) ||
@@ -378,7 +351,7 @@ static bool endsWith(char *p, char *q){
 
 static char *replace_extn(char *tmpl, char *extn){
     char *filename = basename(strdup(tmpl));
-    char *dot = strrchr(filename, ".");
+    char *dot = strchr(filename, ".");
     if (dot){
       *dot = '\0';
     }
@@ -586,15 +559,8 @@ static FileType get_file_type(char *filename){
 
 int main( int argc , char **argv ){
     atexit(cleanup);
-    init_macros();
     parse_args(argc, argv);
-
-                  
-                                             
-             
-                  
-     
-
+                                                         
     if (input_paths.len > 1 && opt_o && (opt_c || opt_S | opt_E)){
        error("cannot specify '-o' with '-c', '-s' or '-E' with multiplying");
     }
