@@ -107,3 +107,13 @@ Token *tokenize_file(char *filename);
 
 #define unreachable() \
     error("internal error at %s:%d", __FILE__, __LINE__);
+
+// preprocessing declarations
+char *search_include_paths(char *filename);
+void init_macros(void);
+void define_macro(char *name, char *buf);
+void undef_macro(char *name);
+Token *preprocess(Token *tok);
+
+
+ 
