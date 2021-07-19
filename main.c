@@ -435,6 +435,8 @@ static char *find_file(char *pattern){
    return path;
 }
 
+
+// if file exists
 bool file_exists(char *path){
   struct stat st;
   return !stat(path, &st);
@@ -532,6 +534,7 @@ static void run_linker(StrArray *inputs, char *output){
     run_subprocess(arr.data);
 }
 
+// file type C, asm, etc.
 static FileType get_file_type(char *filename){
   if (opt_x != FILE_NONE){
     return opt_x;
@@ -553,7 +556,7 @@ static FileType get_file_type(char *filename){
     return FILE_ASM;
   }
 
-  error("<command line>: uknown file extension");
+  error("<command line>: unknown file extension");
 }
 
 
@@ -568,7 +571,6 @@ int main( int argc , char **argv ){
 
     for (int i=0; i< input_paths.len; i++){
       char *input = input_paths.data[i];
-      
       if (!strncmp(input, "-Wl", 4)){
         char *s = strdup(input + 4);
         char *arg = strtok(s, ",");
@@ -605,17 +607,14 @@ int main( int argc , char **argv ){
 
       assert(type == FILE_C);
 
-     
       if (opt_E || opt_M){
          run_cc1(argc, argv, input, NULL);
          continue;
       }
-
       if (opt_S){
          run_cc1(argc, argv, input, output);
          continue;
       }
-
       if (opt_c){
          char *tmp = create_tmpfile();
          run_cc1(argc, argv, input, tmp);
@@ -623,7 +622,6 @@ int main( int argc , char **argv ){
          continue;
 
       }
-    
       //Compile , assemble and link
       char *tmp1 = create_tmpfile();
       char *tmp2 = create_tmpfile();
@@ -632,11 +630,8 @@ int main( int argc , char **argv ){
       array_push(&ld_args, tmp2);
       continue;
     }
-
     if (ld_args.len > 0){
        run_linker(&ld_args, opt_o ? opt_o : "main.out");
     }
     return 0;
-
-
 }
