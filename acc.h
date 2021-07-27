@@ -397,7 +397,7 @@ Type *enum_type(void);
 Type *struct_type(void);
 void add_type(Node *node);
 
-// codegen.c
+// codegenerator.c
 
 void codegen(Obj *prog, FILE *out);
 int align_to(int n , int align);
