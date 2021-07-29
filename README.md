@@ -1,3 +1,3 @@
 ## Do like Compliation, we are writing some compilers
 
-acc and a++
+acc && a++
