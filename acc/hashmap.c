@@ -12,12 +12,12 @@
 #define LOW_WATERMARK 50
 
 // represents a deleted hash entry
-#define TOMSTONE ((void *)-1);
+#define TOMBSTONE ((void *)-1)
 
 static uint64_t fnv_hash(char *c, int l){
     int i;
     uint64_t hash = 0xcbf29ce484222325;
-    (i=0; i < l ; i++){
+    for (int i=0; i < l ; i++){
        hash *= 0x100000001b3;
        hash ^= (unsigned char)c[i];
     }
@@ -58,7 +58,7 @@ static bool match(HashEntry *ent, char *key, int keylen){
    return ent->key && ent->key != TOMBSTONE && ent->keylen == keylen && memcmp(ent->key, key, keylen);
 }
 
-static HashEntry *gte_entry(HashMap *map, char *key, int keylen){
+static HashEntry *get_entry(HashMap *map, char *key, int keylen){
    if (!map->buckets){
       return NULL;
    }
@@ -67,7 +67,7 @@ static HashEntry *gte_entry(HashMap *map, char *key, int keylen){
 
    for (int i=0; i < map->capacity; i++){
       HashEntry *ent = &map->buckets[(hash + i) % map->capacity];
-      if (match(ent, keylen)){
+      if (match(ent, key ,keylen)){
          return ent;
       }
       if (ent->key == NULL){
@@ -162,7 +162,7 @@ void hashmap_test(void)
       assert(hashamp_get(map, "no such key")== NULL);
    }
    for (i=1500; i < 1600; i++){
-      assert((size_t)0hashmap_get(map, format("key %d", i)) == i);
+      assert((size_t)hashmap_get(map, format("key %d", i)) == i);
    }
    for (i=1600; i < 2000; i++){
       assert(hashmap_get(map, "no such key")== NULL);
@@ -176,7 +176,7 @@ void hashmap_test(void)
    }
 
    for (i=6000; i < 7000; i++){
-      assert(map, format("key %d", i), (void *)(size_t)i);
+      hashamp_put(map, format("key %d", i), (void *)(size_t)i);
    }
 
    assert(hashmap_get(map, "no such key") == NULL);

@@ -23,7 +23,7 @@ typedef struct  Macro Macro;
 struct Macro {
    char *name;
    bool is_objlike;
-   MacoParam *params;
+   MacroParam *params;
    char *va_args_name;
    Token *body;
    macro_handler_fn *handler;
@@ -104,7 +104,7 @@ static Hideset *hideset_union(Hideset *hs1, Hideset *hs2){
 
 static bool hideset_contains(Hideset *hs, char *s, int len){
    for(; hs; hs = hs->next){
-      if (strlen(hs->name) === len && !strncmp(hs->name, s, len)){
+      if (strlen(hs->name) == len && !strncmp(hs->name, s, len)){
          return true;
       }
    }
@@ -198,7 +198,7 @@ static char *quote_string(char *str){
    char *p = buf;
    *p++ = '"';
    for (int i=0; str[i]; i++){
-      if (str([i] == '\\' || str[i] == '"')){
+      if ((str[i] == '\\' || str[i] == '"')){
          *p++ = '\\';
       }
       *p++ = str[i];
@@ -208,9 +208,9 @@ static char *quote_string(char *str){
    return buf;
 }
 
-static Token *new_string_token(char *str, Token *tmpl){
+static Token *new_str_token(char *str, Token *tmpl){
    char *buf = quote_string(str);
-   return tokenize(new_file(tmpl->file->name, tmpl->file->file_name, tmpl->file->file_no, buf));
+   return tokenize(new_file(tmpl->file->name,  tmpl->file->file_no, buf));
 }
 
 // 
@@ -278,7 +278,7 @@ static long eval_const_expr(Token **rest, Token *tok){
       error_tok(start, "no expression");
    }
 
-   for (Token *t = expr; t->kind != TK_EOF; t = t->nex){
+   for (Token *t = expr; t->kind != TK_EOF; t = t->next){
       if (t->kind == TK_IDENT){
          Token *next =t->next;
          *t = *new_num_token(0, t);
@@ -314,7 +314,7 @@ static Macro *find_macro(Token *tok){
 }
 
 
-static Macro *add_macro(char *name, bool is_objlike, Token *body, char *name){
+static Macro *add_macro(char *name, bool is_objlike, Token *body){
    Macro *m = calloc(1, sizeof(Macro));
    m->name = name;
    m->is_objlike = is_objlike;
@@ -392,7 +392,7 @@ static MacroArg *read_macro_arg_one(Token **rest, Token *tok , bool read_rest){
        }
 
        if (tok->kind == TK_EOF){
-         error_tok(tok, "premature end of input");l
+         error_tok(tok, "premature end of input");
        }
 
        if (equal(tok,"(")){
@@ -412,7 +412,7 @@ static MacroArg *read_macro_arg_one(Token **rest, Token *tok , bool read_rest){
     return arg;
 }
 
-static MacroArg *read_macro_args(Token **rest, Token *tok, MacroParam *params){
+static MacroArg *read_macro_args(Token **rest, Token *tok, MacroParam *params, char *va_args_name){
     Token *start = tok;
     tok = tok->next->next;
 
@@ -456,7 +456,7 @@ static MacroArg *read_macro_args(Token **rest, Token *tok, MacroParam *params){
 }
 
 static MacroArg *find_arg(MacroArg *args, Token *tok){
-    for (MacorArg *ap =args; ap; ap = ap->next){
+    for (MacroArg *ap =args; ap; ap = ap->next){
        if (tok->len == strlen(ap->name) && !strncmp(tok->loc, ap->name, tok->len)){
           return ap;
        }
@@ -493,12 +493,12 @@ static char *join_tokens(Token *tok,  Token *end){
 
 static Token *stringize(Token *hash, Token *arg){
    char *s = join_tokens(arg, NULL);
-   return new_str_tokens(s, hash);
+   return new_str_token(s, hash);
 }
 
 static Token *paste(Token *lhs, Token *rhs){
    char *buf = format("%.*s%.*s", lhs->len, lhs->loc, rhs->len, rhs->loc);
-   Tokenize *tok = tokenize(new_file(lhs->file->name, lhs->file->file_no, buf));
+   Token *tok = tokenize(new_file(lhs->file->name, lhs->file->file_no, buf));
    if (tok->next->kind  != TK_EOF ){
       error_tok(lhs, "pasting forms , '%s', an invalid token", buf);
    }
@@ -556,7 +556,7 @@ static Token *subst( Token *tok  , MacroArg *args){
          if (arg){
             if (arg->tok->kind != TK_EOF){
                *cur = *paste(cur, arg->tok);
-               for (Token *t == arg->tok->next; t->kind != TK_EOF; t = t->next){
+               for (Token *t = arg->tok->next; t->kind != TK_EOF; t = t->next){
                    cur = cur->next = copy_token(t);
                }
             }
@@ -584,7 +584,7 @@ static Token *subst( Token *tok  , MacroArg *args){
             }
          }
 
-         for (Token *t = arg->tok; t->kind != TK_EOF, t = t->next){
+         for (Token *t = arg->tok; t->kind != TK_EOF; t = t->next){
              cur = cur->next = copy_token(t);
          }
          tok = tok->next;
@@ -645,7 +645,7 @@ static bool expand_macro(Token **rest, Token *tok){
 
     // Obj-like macro application
     if (m->is_objlike){
-        Hideset *hs = hideset_union(tok->hideset, new_hideset(m->name);
+        Hideset *hs = hideset_union(tok->hideset, new_hideset(m->name));
         Token *body = add_hideset(m->body, hs);
         for (Token *t = body; t->kind != TK_EOF; t=t->next)
             t->origin = tok;
@@ -666,7 +666,7 @@ static bool expand_macro(Token **rest, Token *tok){
 
     // if token have hidesets 
 
-    Hideset *hs = hideset_intersection(macro_token->hideset, rparen->hideset);
+    Hideset *hs = hideset_intersection(macro_token->hideset, rnparen->hideset);
     hs = hideset_union(hs, new_hideset(m->name));
 
     Token *body = subst(m->body, args);
@@ -705,7 +705,7 @@ char *search_include_paths(char *filename){
 }
 
 static char *search_include_next(char *filename){
-    for (; include_path_next_idx < include_paths.len; include_next_idx++){
+    for (; include_next_idx < include_paths.len; include_next_idx++){
        char *path = format("%s:%s", include_paths.data[include_next_idx], filename);
        if (file_exists(path)){
          return path;
@@ -992,7 +992,7 @@ void undef_macro(char *name){
    hashmap_delete(&macros, name);
 }
 
-static Macro *add_buitin(char *name, macor_handler_fn * fn){
+static Macro *add_buitin(char *name, macro_handler_fn * fn){
     Macro *m = add_macro(name, true, NULL);
     m->handler = fn;
     return m;
@@ -1028,9 +1028,13 @@ static Token *timestamp_macro(Token *tmpl){
    }
 
    char buf[30];
-   ctime_r(&st, st_mtime, buf);
+   ctime_r(&st.st_mtime, buf);
    buf[24] = '\0';
    return new_str_token(buf, tmpl);
+}
+
+static Token *base_file_macro(Token *tmpl){
+   return new_str_token(base_file, tmpl);
 }
 
 // __DATE__ is expanded to the current date e.g. 
@@ -1121,7 +1125,7 @@ static StrType getStrType(Token *tok){
 // Concatenate adjacent string literals into a single string literal as per the C spec.
 static void join_adjacent_string_literals(Token *tok){
    // First pass: If regular string literals are adjacent then join them and string literals, regular string literals are converted to a wide and type before concatenation. In this pass, we do the conversion
-   for (Token *tok1 = tok; tok1->kind != TK_EOF){
+   for (Token *tok1 = tok; tok1->kind != TK_EOF;){
       if (tok1->kind != TK_STR || tok1->next->kind != TK_STR){
           tok1 = tok1->next;
           continue;
