@@ -61,17 +61,17 @@ typedef enum {
 typedef struct{
    char *name;
    int file_no;
-   char *constants;
+   char *contents;
 
    // For #line directive
-   char *display_name
+   char *display_name;
    int line_delta;
 } File;
 
 // Token type
 typedef struct Token Token;
 struct Token{
-    TokenKind kinf;  //Token Kind
+    TokenKind kind;  //Token Kind
     Token *next;   //Next Token
     int64_t val;   // If kind is TK_NUM , its value
     long double fval; //If kind is TK_NUM, its value
@@ -94,7 +94,7 @@ struct Token{
 noreturn void error(char *fmt, ...) __attribute__((format(printf, 1, 2)));
 noreturn void error_at(char *loc, char *fmt , ...) __attribute__((format(printf,2,3)));
 noreturn void error_tok(Token *tok, char *fmt, ...) __attribute__((format(printf, 2,3)));
-void warn_tok(Token *tok, char *fmt, ...) __attribute__((format((printf,2,3))));
+void warn_tok(Token *tok, char *fmt, ...) __attribute__((format(printf,2,3)));
 bool equal(Token *tok, char *op);
 Token *skip(Token *tok, char *op);
 bool consume(Token **rest, Token *tok, char *str);
@@ -146,14 +146,14 @@ struct Obj {
    Obj *params;
    Node *body;
    Obj *locals;
-   Obj *va_area;
+   Obj *var_area;
    Obj *alloca_bottom;
    int stack_size;
 
    // Static inline function
    bool is_live;
    bool is_root;
-   StrType refs;
+   StrArray refs;
 };
 
 // global variable can be initiailized either by a constant experience or a pointer to another global variable. The struct representative latter.
@@ -163,6 +163,7 @@ struct Relocation {
     int offset;
     char **label;
     long addend;
+    
 };
 
 // AST node
@@ -192,6 +193,7 @@ typedef enum {
    ND_NOT , // !
    ND_BITNOT, //~
    ND_LOGAND, // &&
+   ND_LOGOR, // ||
    ND_RETURN , // "return"
    ND_IF, // "if"
    ND_FOR, // "for" or "while"
@@ -205,11 +207,12 @@ typedef enum {
    ND_LABEL_VAL,  // [GNU] Labels-as-value
    ND_FUNCALL, // Function call
    ND_EXPR_CALL, //Expression statement
-   ND_STMT_EXPR, // Statement epxression
+   ND_EXPR_STMT, // Statement epxression
    ND_VAR, // Variable
    ND_VLA_PTR, // VLA designator
    ND_NUM, // Integer
    ND_CAST, // Type cast
+   ND_COMMA, // comma 
    ND_MEMZERO, //Zero-Clear a staack vairable
    ND_ASM,  // "asm"
    ND_CAS, // Atomic compare and swap
@@ -239,7 +242,7 @@ struct Node {
    char *cont_label;
 
    // Block or statement expression
-   Node *member;
+   Node *body;
 
    // Struct member access
    Member *member;
@@ -301,19 +304,18 @@ typedef enum {
    TY_DOUBLE,
    TY_ENUM,
    TY_LDOUBLE,
-   TY_ENUM,
    TY_PTR,
    TY_FUNC,
    TY_ARRAY,                            
-   TY_VAL, // variable-length array
-   TY_STRUCTM
+   TY_VLA, // variable-length array
+   TY_STRUCT,
    TY_UNION,
 } TypeKind;
 
 
 struct Type {
    TypeKind kind; 
-   int align  // aligment
+   int align;  // aligment
    bool is_unsigned  ; // unsigend or signed 
    int size; // sizeof() value
    bool  is_atomic; // true if _Atomic
@@ -406,7 +408,7 @@ int align_to(int n , int align);
 
 int encode_utf8(char *buf, uint32_t c){
    uint32_t decode_utf8(char **new_pos, char *p);
-   bool is_ident1(uint32_t c);
+   bool is_ident1(uint32_t c)
    bool is_ident2(uint32_t c);
    int display_width(char *p, int len);
 }

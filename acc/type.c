@@ -10,7 +10,7 @@ Type *ty_long = &(Type){TY_LONG, 8, 8};
 Type *ty_uchar = &(Type){TY_CHAR, 1, 1, true};
 Type *ty_ushort = &(Type){TY_SHORT, 2,2,true};
 Type *ty_uint = &(Type){TY_INT, 4, 4, true};
-Type *ty_ulong = &(Type){TY_LONG, 8, 8 true};
+Type *ty_ulong = &(Type){TY_LONG, 8, 8, true};
 
 Type *ty_float = &(Type){TY_FLOAT, 4, 4};
 Type *ty_double = &(Type){TY_DOUBLE,8,8};
@@ -175,7 +175,7 @@ static Type *get_common_type(Type *ty1, Type *ty2){
 if any integeral type is smaller than the other's,the smaller operand will be promoted to match with the other.
 "usual arithmetic converstion"
 */ 
-static void usual_arith_conv(Node *lhs, Node **rhs){
+static void usual_arith_conv(Node **lhs, Node **rhs){
    Type *ty = get_common_type((*lhs)->ty, (*rhs)->ty);
    *lhs = new_cast(*lhs, ty);
    *rhs = new_cast(*rhs, ty);
@@ -290,7 +290,7 @@ void add_type(Node *node){
             node->ty = node->lhs->ty->base;
             return;
 
-       case ND_STMT_EXPR:
+       case ND_EXPR_STMT:
             if (node->body){
                 Node *stmt = node->body;
                 while (stmt->next){
@@ -316,8 +316,8 @@ void add_type(Node *node){
             if (node->cas_addr->ty->kind != TY_PTR ){
                 error_tok(node->cas_addr->tok, "pointer expected");
             }
-            if (node->cas_old->ty_kind != TY_PTR){
-               error_tok(node->cas_odl->tok,"pointer expected!");
+            if (node->cas_old->ty->kind != TY_PTR){
+               error_tok(node->cas_old->tok,"pointer expected!");
             }
             return;
        case ND_EXCH:
