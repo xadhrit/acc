@@ -1,13 +1,13 @@
 #include "acc.h"
 
 // encode a given character in UTF-8
-int encode+_utf8(char *buf, uint32_t c){
-    if (c <= 0x7F){
+int encode_utf8(char *buf, uint32_t c){
+   if (c <= 0x7F){
         buf[0] = c;
         return 1;
-    }
+   }
 
-    if (x <= 0x7FF){
+    if (c <= 0x7FF){
        buf[0] = 0b11000000 | (c >> 6);
        buf[1] = 0b10000000 | (c & 0b00111111);
        return 2;

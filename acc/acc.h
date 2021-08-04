@@ -146,7 +146,7 @@ struct Obj {
    Obj *params;
    Node *body;
    Obj *locals;
-   Obj *var_area;
+   Obj *va_area;
    Obj *alloca_bottom;
    int stack_size;
 
@@ -408,7 +408,7 @@ int align_to(int n , int align);
 
 int encode_utf8(char *buf, uint32_t c){
    uint32_t decode_utf8(char **new_pos, char *p);
-   bool is_ident1(uint32_t c)
+   bool is_ident1(uint32_t c);
    bool is_ident2(uint32_t c);
    int display_width(char *p, int len);
 }

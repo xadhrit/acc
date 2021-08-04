@@ -13,7 +13,6 @@ static bool has_space;
 // errors , warning and exit
 void error(char *fmt, ...){
   va_list ap;
-  va
   va_start(ap, fmt);
   vfprintf(stderr, fmt, ap);
   fprintf(stderr, "\n");
@@ -30,7 +29,7 @@ static void verror_at(char *filename, char *input,int line_no ,char *loc,char *f
 
    char *end = loc;
    while (*end && *end != '\n'){
-     end+=;
+     end++;
    }
 
    int indent = fprintf(stderr, "%s: %d: ", filename,line_no);
@@ -38,7 +37,7 @@ static void verror_at(char *filename, char *input,int line_no ,char *loc,char *f
 
    int position = display_width(line, loc - line) + indent;
 
-   fprintf(stderr, "%*s",pos,"");
+   fprintf(stderr, "%*s",position,"");
    fprintf(stderr, "^ ");
    vfprintf(stderr, fmt, ap);
    fprintf(stderr, "\n");
@@ -47,7 +46,7 @@ static void verror_at(char *filename, char *input,int line_no ,char *loc,char *f
 void error_at(char *loc ,char *fmt,...){
    int line_no = 1;
    for (char *s = current_file->contents; s < loc;s++){
-     if (*p == '\n'){
+     if (*s == '\n'){
         line_no++;
      }
    }

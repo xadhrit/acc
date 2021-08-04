@@ -17,9 +17,9 @@ static void gen_stmt(Node *node);
 __attribute__((format(printf, 1, 2)))
 static void println(char *fmt, ...){
     va_list op;
-    va_start(ap, fmt);
-    vfprintf(out_file, fmt, ap);
-    va_end(ap);
+    va_start(op, fmt);
+    vfprintf(out_file, fmt, op);
+    va_end(op);
     fprintf(out_file, "\n");
 }
 
@@ -144,7 +144,6 @@ static void gen_addr(Node *node){
                 gen_expr(node);
                 return;
             }
-
             break;
        case ND_VLA_PTR:
             println(" lea %d(%%rbp), %%rax ", node->var->offset);
@@ -205,7 +204,7 @@ static void store(Type *ty){
       case TY_FLOAT:
            println(" movss %%xmm0, (%%rdi)");
            return;
-      case TY_DOBULE:
+      case TY_DOUBLE:
            println(" movsd %%xmm0, (%%rdi) ");
            return;
       case TY_LDOUBLE:
@@ -252,7 +251,7 @@ static void cmp_zero(Type *ty){
    }
 }
 
-enum { I8, I16, I32 , I64, U8, U32, U64, F32, F64, F80 };
+enum { I8, I16, I32 , I64, U8, U16 ,U32, U64, F32, F64, F80 };
 
 static int getTypeId(Type *ty){
    switch(ty->kind ){
@@ -289,6 +288,10 @@ static char u32f32[] = "mov %eax, %eax; cvtsi2ssq %rax, %xmm0";
 static char u32i64[] = "mov %eax, %eax";
 static char u32f64[] = "mov %eax, %eax; cvtsi2sdq %rax, %xmm0";
 static char u32f80[] = "mov %eax, %eax; mov %rax, -8(%rsp)";
+
+static char i64f32[] = "cvtsi2ssq %rax, %xmm0";
+static char i64f64[] = "cvtsi2sdq %rax, %xmm0";
+static char i64f80[] = "movq %rax, -8(%rsp); fildll -8(%rsp)";
 
 static char u64f32[] = "cvtsi2ssq %rax, %xmm0";
 static char u64f64[] = 
@@ -589,7 +592,7 @@ static void copy_struct_reg(void){
 
    println("  mov %%rax , %%rdi");
 
-   if (has_floatnum1(ty, 0, 8, 0)){
+   if (has_flonum(ty, 0, 8, 0)){
       assert(ty->size == 4 || 8 <= ty->size);
       if (ty->size == 4){
          println(" movss (%%rdi), %%xmm0 ");
@@ -739,7 +742,7 @@ static void gen_expr(Node *node){
            gen_addr(node);
            load(node->ty);
 
-           Member *mem = node->member
+           Member *mem = node->member;
            if (mem->is_bitfield){
               println(" shl $%d, %%rax ", 64 - mem->bit_width - mem->bit_offset);
               if (mem->ty->is_unsigned){
@@ -751,7 +754,7 @@ static void gen_expr(Node *node){
               }
            }
            return;
-       }
+       
       case ND_DEREF:
          gen_expr(node->lhs);
          load(node->ty);
@@ -789,7 +792,7 @@ static void gen_expr(Node *node){
      case ND_ADDR:
           gen_addr(node->lhs);
           return;
-     case ND_STMT_EXPR:
+     case ND_EXPR_STMT:
           for (Node *n = node->body; n; n=n->next){
              gen_stmt(n);
           }
@@ -891,7 +894,7 @@ static void gen_expr(Node *node){
                        bool fp1 = has_floatnum1(ty);
                        bool fp2 = has_floatnum2(ty);
 
-                       if (fp + fp1 + fp2 < FP_MAX && gp + !fp1 + !fp2 < GP+MAX){
+                       if (fp + fp1 + fp2 < FP_MAX && gp + !fp1 + !fp2 < GP_MAX){
                           if (fp1){
                              popf(fp++);
                           }
@@ -1200,7 +1203,6 @@ static void gen_expr(Node *node){
                 println(" sar %%cl, %s ", ax);
               }
               return;
-         
       }
       error_tok(node->tok, "invalid expression");
 }
@@ -1226,8 +1228,9 @@ static void gen_stmt(Node *node){
       case ND_FOR: {
          int c = count();
          if (node->init){
-            gen_stmt(".L.begin.%d:", c);
+            gen_stmt(node->init);
          }
+         println(".L.begin.%d:", c);
          if (node->cond){
             gen_expr(node->cond);
             cmp_zero(node->cond->ty);
@@ -1247,7 +1250,7 @@ static void gen_stmt(Node *node){
          int c= count();
          println(".L.begin.%d:", c);
          gen_stmt(node->then);
-         println("%s:", node->count_label);
+         println("%s:", node->cont_label);
          gen_expr(node->cond);
          cmp_zero(node->cond->ty);
          println(" jne .L.begin.%d", c);
@@ -1344,7 +1347,9 @@ static void assign_lvar_offsets(Obj *prog){
       */
       int top = 16;
       int bottom = 0;
-
+      
+      int gp=0;
+      int fp = 0;
       // Assign offsets to pass-by-stack paramteres
       for (Obj *var = fn->params;var;var=var->next){
          Type *ty = var->ty;
@@ -1355,7 +1360,7 @@ static void assign_lvar_offsets(Obj *prog){
                  if (ty->size <= 16){
                     bool fp1 = has_floatnum(ty, 0,8, 0);
                     bool fp2 = has_floatnum(ty, 8, 16, 8);
-                    if (fp+ fp1+fp2 < FP_MAX && gp + !fp1 + !fp2 < GP_MAX){
+                    if (fp + fp1+fp2 < FP_MAX && gp + !fp1 + !fp2 < GP_MAX){
                         fp = fp + fp1 +fp2;
                         gp = gp + !fp1 + !fp2;
                         continue;
@@ -1376,7 +1381,7 @@ static void assign_lvar_offsets(Obj *prog){
                 }
          }
          top = align_to(top, 8);
-         var->offsett = top;
+         var->offset = top;
          top +=var->ty->size;
 
 
@@ -1408,7 +1413,7 @@ static void emit_data(Obj *prog){
          println(".globl %s ", var->name);
       }
 
-      int align = (var->ty->kind == TY_ARRAY && var->ty->size >= 16){
+      int align = (var->ty->kind == TY_ARRAY && var->ty->size >= 16)
          ? MAX(16, var->align) : var->align;
 
       if (opt_fcommon && var->is_tentative){
